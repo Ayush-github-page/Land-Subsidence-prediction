@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Singareni surface displacement Time Series</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8f9fa;
+    }
+    #chartContainer {
+      width: 80%;
+      margin: auto;
+    }
+    #map {
+      height: 500px;
+      width: 700px;
+      border: 2px solid #333;
+      border-radius: 10px;
+    }
+
+    #info {
+      width: 300px;
+      padding: 15px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      background: #f9f9f9;
+    }
+
+    #info h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="info">
+    <h2>Elevation Info</h2>
+    <p>Click on the map to see elevation.</p>
+    <p id="output"></p>
+  </div>
+  <!-- Load Google Maps API -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=APIKey&callback=initMap"
+    async defer>
+  </script>
+
+  <script>
+    let map, elevator;
+
+    function initMap() {
+      // Example location: Times Square, NYC
+      var location = { lat: 17.62750523465081, lng: 80.30424332483172 };
+
+      // Initialize map with 3D view
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: location,
+        zoom: 18,
+        mapTypeId: 'satellite',
+        tilt: 45,
+        heading: 90,
+        gestureHandling: "greedy"
+      });
+
+      new google.maps.Marker({
+        position: location,
+        map: map,
+        title: "Times Square, NYC"
+      });
+
+      // Create Elevation Service
+      elevator = new google.maps.ElevationService();
+
+      // Add click listener to map
+      map.addListener("click", (event) => {
+        getElevation(event.latLng);
+      });
+    }
+
+    function getElevation(latLng) {
+      elevator.getElevationForLocations(
+        { locations: [latLng] },
+        (results, status) => {
+          if (status === "OK" && results[0]) {
+            document.getElementById("output").innerHTML =
+              `<b>Latitude:</b> ${latLng.lat().toFixed(5)}<br>
+               <b>Longitude:</b> ${latLng.lng().toFixed(5)}<br>
+               <b>Elevation:</b> ${results[0].elevation.toFixed(2)} meters`;
+          } else {
+            document.getElementById("output").innerHTML =
+              "Elevation data not available.";
+          }
+        }
+      );
+    }
+  </script>
+
+
+  <h2>Singareni Mines (Yellandu) – Sentinel-1</h2>
+  <div id="chartContainer">
+    <canvas id="Chart"></canvas>
+  </div>
+
+  <script>
+    async function loadData() {
+      const response = await fetch("singareni.json");
+      const chartData = await response.json();
+
+      const ctx = document.getElementById("Chart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: chartData.labels,
+          datasets: [{
+            label: "Displacement (dB)",
+            data: chartData.data,
+            borderColor: "blue",
+            backgroundColor: "rgba(0, 123, 255, 0.3)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            tooltip: { mode: "index", intersect: false }
+          },
+          scales: {
+            x: { title: { display: true, text: "Date" } },
+            y: { title: { display: true, text: "Displacement (dB)" } }
+          }
+        }
+      });
+    }
+    loadData();
+  </script>
+</body>
+</html>
